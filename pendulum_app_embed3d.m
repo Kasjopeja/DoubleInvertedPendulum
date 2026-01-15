@@ -398,10 +398,6 @@ function ang = disturbAngleLocal(angEq, d)
         dp_sync_base(f);
     end
 
-    function onApplyIC(~,~)
-        dp_sync_base(f);
-    end
-
     function onResetView(~,~)
         a = guidata(f);
         if isempty(a.initViewpoint), return; end
@@ -511,7 +507,7 @@ function ang = disturbAngleLocal(angEq, d)
         % 3) wolniejsze odswiezanie VR (nie zmienia dynamiki, tylko rendering)
         try
             if isfield(app,'sigBlks') && isstruct(app.sigBlks) && isfield(app.sigBlks,'vr')
-                set_param(app.sigBlks.vr,'SampleTime','0.02');
+                set_param(app.sigBlks.vr,'SampleTime','0.005');
             end
         catch
         end

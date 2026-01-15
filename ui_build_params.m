@@ -75,7 +75,7 @@ function ui = ui_build_params(parent, fig, cfg)
 
     ui.hQ = gobjects(1,6);
     x0 = 0.16; y0 = 0.74; w = 0.12; h = 0.16; gap = 0.02;
-    q0 = safeCfg(cfg,'lqr','Qdiag',[200 50 200 10 10 10]);
+    q0 = safeCfg(cfg,'lqr','Qdiag',[10 10 200 10 200 10]);
     qInit = arrayfun(@(x)num2str(x), q0(:).', 'UniformOutput', false);
     for i = 1:6
         ui.hQ(i) = uicontrol('Parent', pLqr, 'Style','edit', 'Units','normalized', ...
@@ -98,7 +98,7 @@ function ui = ui_build_params(parent, fig, cfg)
         'HorizontalAlignment','left', 'BackgroundColor', get(pLqr,'BackgroundColor'));
 
     ui.edtR = uicontrol('Parent', pLqr, 'Style','edit', 'Units','normalized', ...
-        'Position',[0.16 0.44 0.20 0.14], 'String', num2str(safeCfg(cfg,'lqr','R',100)), ...
+        'Position',[0.16 0.44 0.20 0.14], 'String', num2str(safeCfg(cfg,'lqr','R',10)), ...
         'Callback', @(~,~)ui_update_lqr(fig));
 
     ui.txtK = uicontrol('Parent', pLqr, 'Style','text', 'Units','normalized', ...
