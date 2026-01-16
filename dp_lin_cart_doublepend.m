@@ -1,5 +1,22 @@
 function [A,B,x0,u0] = dp_lin_cart_doublepend(theta1e, theta2e, x_ref, p)
-% Stan: [x; dx; th1; dth1; th2; dth2], wejście: u
+%DP_LIN_CART_DOUBLEPEND Numerically linearize the cart + double pendulum dynamics around an equilibrium.
+%
+% Builds the operating point (x0,u0) for the given reference position and
+% equilibrium angles, then computes the continuous-time linear model
+% xdot ≈ A*(x - x0) + B*(u - u0) using central finite differences applied to
+% dp_dynamics. Step sizes are scaled per-state to improve numerical robustness.
+%
+% Inputs:
+%   theta1e - equilibrium angle of the first pendulum [rad].
+%   theta2e - equilibrium angle of the second pendulum [rad].
+%   x_ref   - cart reference position used to form x0 (default: 0).
+%   p       - struct of physical parameters (M, m1, m2, l1, l2, g).
+%
+% Outputs:
+%   A  - state matrix (6x6) at the operating point.
+%   B  - input matrix (6x1) at the operating point.
+%   x0 - operating state [x_ref; 0; theta1e; 0; theta2e; 0].
+%   u0 - operating input (scalar, default 0).
 
 if nargin < 3 || isempty(x_ref), x_ref = 0; end
 if nargin < 4 || isempty(p)

@@ -1,6 +1,19 @@
 function xdot = dp_dynamics(x, u, p)
-%#codegen
-% x = [x; dx; th1; dth1; th2; dth2]
+%DP_DYNAMICS Continuous-time equations of motion for the cart + double pendulum.
+%
+% Computes the state derivatives xdot for the nonlinear model using the
+% mass-matrix formulation M(q)*qdd = rhs(q,qd,u). This function is intended
+% to be the single, source of dynamics used by the simulator
+% and any analysis utilities, ensuring consistent physics across the codebase.
+%
+% Inputs:
+%   x - state vector [x; dx; th1; dth1; th2; dth2]
+%   u - cart force input
+%   p - struct of physical parameters (M, m1, m2, l1, l2, g)
+%
+% Output:
+%   xdot - time derivative of the state vector
+
 x = x(:);
 
 th1  = x(3);  dth1 = x(4);
@@ -17,8 +30,8 @@ M  = p.M;  m1 = p.m1;  m2 = p.m2;
 l1 = p.l1; l2 = p.l2;  g  = p.g;
 
 Mmat = [ M + m1 + m2,        (m1 + m2)*l1*c1t,     m2*l2*c2t;
-         (m1 + m2)*l1*c1t,   (m1 + m2)*l1^2,       m2*l1*l2*c12;
-         m2*l2*c2t,          m2*l1*l2*c12,         m2*l2^2 ];
+        (m1 + m2)*l1*c1t,   (m1 + m2)*l1^2,       m2*l1*l2*c12;
+        m2*l2*c2t,          m2*l1*l2*c12,         m2*l2^2 ];
 
 rhs = [ u + (m1 + m2)*l1*s1*dth1^2 + m2*l2*s2*dth2^2;
         (m1 + m2)*g*l1*s1 - m2*l1*l2*s12*dth2^2;
