@@ -9,10 +9,7 @@ addpath(appDir);
 cfg = dp_defaults(mdl);
 
 wrl = VRML_FILE;
-if exist(wrl,'file') ~= 2
-    wrl2 = fullfile(appDir, wrl);
-    if exist(wrl2,'file') == 2, wrl = wrl2; end
-end
+
 w = vrworld(wrl);
 open(w);
 
@@ -167,11 +164,11 @@ app.mdl = mdl;
 app.w = w;
 app.canvas = c;
 app.initViewpoint = [];
-try, app.initViewpoint = c.Viewpoint; catch, end
+try app.initViewpoint = c.Viewpoint; catch, end
 
 app.p = p0;
 
-app.sim = struct('Ts', cfg.sim.Ts);
+app.sim = struct('Ts', cfg.sim.Ts, 'fastRestart', true, 'compiled', false);
 app.lqr = struct('Q', diag(cfg.lqr.Qdiag), 'R', cfg.lqr.R, 'K', zeros(1,6));
 app.eq  = struct('theta1e', cfg.eq.theta1e, 'theta2e', cfg.eq.theta2e, 'x_ref', cfg.eq.x_ref, 'mode', cfg.eq.mode);
 app.hyst = struct('th_on', cfg.hyst.th_on, 'delta', cfg.hyst.delta, 'th_off', cfg.hyst.th_on - cfg.hyst.delta, 'enabled', logical(cfg.hyst.enabled));
@@ -202,10 +199,19 @@ app.kick = struct('amp', 70, 'dur', 0.05, 'timer', []);
 
 
 guidata(f, app);
-try, ui_update_eq(f); catch, end
-try, ui_update_hysteresis(f); catch, end
-try, ui_update_lqr(f); catch, end
-try, dp_sync_base(f); catch, end
+try ui_update_eq(f); catch, end
+try ui_update_hysteresis(f); catch, end
+try ui_update_lqr(f); catch, end
+try dp_sync_base(f); catch, end
+try
+    applyPerfHints();
+
+    a0 = guidata(f);
+    if isfield(a0,'sim') && isfield(a0.sim,'fastRestart') && a0.sim.fastRestart
+        set_param(a0.mdl,'FastRestart','on');
+    end
+catch
+end
 
 %% ---------- callbacks ----------
     function onStart(~,~)
@@ -219,7 +225,7 @@ try, dp_sync_base(f); catch, end
         dp_sync_base(f);
 
 
-        try, set_param(a.sigBlks.kick,'Value','0'); catch, end
+        try set_param(a.sigBlks.kick,'Value','0'); catch, end
         try
             if isfield(a,'kick') && isfield(a.kick,'timer') && ~isempty(a.kick.timer) && isvalid(a.kick.timer)
                 if strcmpi(a.kick.timer.Running,'on')
@@ -239,8 +245,21 @@ try, dp_sync_base(f); catch, end
 
         applyPerfHints();
 
-        try, set_param(app.mdl,'SimulationCommand','update'); catch, end
-        try, set_param(app.mdl,'SimulationCommand','start');  catch, end
+        try
+            a = guidata(f);
+            if isfield(a,'sim') && isfield(a.sim,'compiled') && ~a.sim.compiled
+                set_param(a.mdl,'SimulationCommand','update');
+                a.sim.compiled = true;
+                guidata(f,a);
+            end
+        catch
+        end
+
+        try
+            a = guidata(f);
+            set_param(a.mdl,'SimulationCommand','start');
+        catch
+        end
 
         dp_plot(f,'start');
         setStatusLabel('RUNNING');
@@ -252,10 +271,10 @@ try, dp_sync_base(f); catch, end
 
     function onPause(~,~)
         st = '';
-        try, st = get_param(app.mdl,'SimulationStatus'); catch, end
+        try st = get_param(app.mdl,'SimulationStatus'); catch, end
 
         if strcmpi(st,'running')
-            try, set_param(app.mdl,'SimulationCommand','pause'); catch, end
+            try set_param(app.mdl,'SimulationCommand','pause'); catch, end
             setStatusLabel('PAUSED');
 
             try
@@ -266,7 +285,7 @@ try, dp_sync_base(f); catch, end
             catch
             end
         elseif strcmpi(st,'paused')
-            try, set_param(app.mdl,'SimulationCommand','continue'); catch, end
+            try set_param(app.mdl,'SimulationCommand','continue'); catch, end
             setStatusLabel('RUNNING');
 
             dp_plot(f,'start');
@@ -277,7 +296,7 @@ try, dp_sync_base(f); catch, end
         a = guidata(f);
 
         st = '';
-        try, st = get_param(a.mdl,'SimulationStatus'); catch, end
+        try st = get_param(a.mdl,'SimulationStatus'); catch, end
         if ~strcmpi(st,'running')
             return;
         end
@@ -317,7 +336,7 @@ try, dp_sync_base(f); catch, end
                 set_param(a.sigBlks.kick,'Value','0');
             end
         catch
-            try, set_param(a.sigBlks.kick,'Value','0'); catch, end
+            try set_param(a.sigBlks.kick,'Value','0'); catch, end
         end
     end
 
@@ -327,17 +346,6 @@ try, dp_sync_base(f); catch, end
             set_param(a.sigBlks.kick,'Value','0');
         catch
         end
-    end
-
-    function ang = disturbAngleLocal(angEq, d)
-
-        if abs(angEq) < pi/2
-            ang = angEq + d;
-        else
-            ang = angEq - d;
-        end
-        if ang > pi,  ang = ang - 2*pi; end
-        if ang < -pi, ang = ang + 2*pi; end
     end
 
     function onPreset(k)
@@ -381,29 +389,38 @@ try, dp_sync_base(f); catch, end
     function onResetView(~,~)
         a = guidata(f);
         if isempty(a.initViewpoint), return; end
-        try, a.canvas.Viewpoint = a.initViewpoint; catch, end
+        try a.canvas.Viewpoint = a.initViewpoint; catch, end
     end
 
     function onClose(~,~)
-        try, set(f,'CloseRequestFcn',[]); catch, end
-        try, set(f,'Visible','off'); drawnow('nocallbacks'); catch, end
+        try set(f,'CloseRequestFcn',[]); catch, end
+        try set(f,'Visible','off'); drawnow('nocallbacks'); catch, end
 
         dp_plot(f,'stop');
 
         a = [];
-        try, a = guidata(f); catch, end
+        try a = guidata(f); catch, end
 
         try
             if ~isempty(a)
-                try, set_param(a.sigBlks.kick,'Value','0'); catch, end
+                set_param(a.mdl,'FastRestart','off');
+            else
+                set_param(app.mdl,'FastRestart','off');
+            end
+        catch
+        end
+
+        try
+            if ~isempty(a)
+                try set_param(a.sigBlks.kick,'Value','0'); catch, end
                 if isfield(a,'kick') && isfield(a.kick,'timer') && ~isempty(a.kick.timer) && isvalid(a.kick.timer)
                     try
                         if strcmpi(a.kick.timer.Running,'on'), stop(a.kick.timer); end
                     catch
                     end
-                    try, delete(a.kick.timer); catch, end
+                    try delete(a.kick.timer); catch, end
                     a.kick.timer = [];
-                    try, guidata(f,a); catch, end
+                    try guidata(f,a); catch, end
                 end
             end
         catch
@@ -434,25 +451,25 @@ try, dp_sync_base(f); catch, end
         end
         try
             if ~isempty(a) && isfield(a,'canvas') && ~isempty(a.canvas)
-                try, delete(a.canvas); catch, end
+                try delete(a.canvas); catch, end
                 a.canvas = [];
             end
         catch
         end
         try
             if ~isempty(a) && isfield(a,'w') && ~isempty(a.w)
-                try, close(a.w); catch, end
-                try, delete(a.w); catch, end
+                try close(a.w); catch, end
+                try delete(a.w); catch, end
                 a.w = [];
             else
-                try, close(w); catch, end
+                try close(w); catch, end
                 try, delete(w); catch, end
             end
         catch
         end
         try, warning(ws); catch, end
 
-        try, delete(f); catch, end
+        try delete(f); catch, end
     end
 
     function setStatusLabel(s)
@@ -469,13 +486,13 @@ try, dp_sync_base(f); catch, end
     end
 
     function applyPerfHints()
-        try, set_param(app.mdl,'SignalLogging','off'); catch, end
-        try, set_param(app.mdl,'DSMLogging','off'); catch, end
-        try, set_param(app.mdl,'SaveOutput','off'); catch, end
-        try, set_param(app.mdl,'SaveTime','off'); catch, end
-        try, set_param(app.mdl,'VisualizeSimOutput','off'); catch, end
+        try set_param(app.mdl,'SignalLogging','off'); catch, end
+        try set_param(app.mdl,'DSMLogging','off'); catch, end
+        try set_param(app.mdl,'SaveOutput','off'); catch, end
+        try set_param(app.mdl,'SaveTime','off'); catch, end
+        try set_param(app.mdl,'VisualizeSimOutput','off'); catch, end
 
-        try, set_param(app.mdl,'MaxStep','0.01'); catch, end
+        try set_param(app.mdl,'MaxStep','0.01'); catch, end
 
         try
             if isfield(app,'sigBlks') && isstruct(app.sigBlks) && isfield(app.sigBlks,'vr')

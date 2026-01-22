@@ -31,7 +31,7 @@ if ~isfield(app,'sim') || ~isstruct(app.sim)
     app.sim = struct();
 end
 
-Ts0 = safeField(app.sim,'Ts', 0.005);
+Ts0 = safeField(app.sim,'Ts', 0.01);
 
 p0 = struct();
 p0.M  = safeField(app.p,'M',  1.0);
