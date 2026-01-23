@@ -56,17 +56,18 @@ row2H = 0.23; yRow2 = kickY + kickH + rowGap;
 row1H = 0.36; yRow1 = yRow2 + row2H + rowGap;
 btnW12 = (1 - 2*xPad - colGap) / 2;
 
-uicontrol('Parent', pBtns, 'Style','pushbutton', 'String','Start / Restart', ...
+btnStart = uicontrol('Parent', pBtns, 'Style','pushbutton', 'String','Start / Stop', ...
     'Units','normalized', 'Position',[xPad yRow1 btnW12 row1H], 'Callback', @onStart);
 
-uicontrol('Parent', pBtns, 'Style','pushbutton', 'String','Pause / Continue', ...
+btnPause  = uicontrol('Parent', pBtns, 'Style','pushbutton', 'String','Pauza / Kontynuuj', ...
     'Units','normalized', 'Position',[xPad+btnW12+colGap yRow1 btnW12 row1H], 'Callback', @onPause);
 
+btnPreset = gobjects(1,4);
 colGap4 = 0.03;
 btnW4 = (1 - 2*xPad - 3*colGap4) / 4;
 for i = 1:4
     x = xPad + (i-1)*(btnW4+colGap4);
-    uicontrol('Parent', pBtns, 'Style','pushbutton', 'String',sprintf('Preset %d', i), ...
+    btnPreset(i) = uicontrol('Parent', pBtns, 'Style','pushbutton', 'String',sprintf('Scenariusz %d', i), ...
         'Units','normalized', 'Position',[x yRow2 btnW4 row2H], ...
         'Callback', @(~,~)onPreset(i));
 end
@@ -126,7 +127,7 @@ txtU = uicontrol('Parent', p3dStrip, 'Style','text', 'Units','normalized', ...
     'BackgroundColor', get(p3dStrip,'BackgroundColor'));
 
 uicontrol('Parent', p3dStrip, 'Style','pushbutton', 'Units','normalized', ...
-    'Position',[0.78 0.18 0.20 0.64], 'String','Reset view', ...
+    'Position',[0.78 0.18 0.20 0.64], 'String','Resetuj widok', ...
     'FontSize', 9, 'Callback', @onResetView);
 
 c = vr.canvas(w, p3dView);
@@ -183,6 +184,9 @@ app.ui.txtStatus = txtStatus;
 app.ui.edtX0 = edtX0;
 app.ui.edtTh10 = edtTh10;
 app.ui.edtTh20 = edtTh20;
+app.ui.btnStart   = btnStart;
+app.ui.btnPause   = btnPause;
+app.ui.btnPreset  = btnPreset;
 
 app.ax = struct('x',axX,'th',axTh);
 app.lines = struct('x',hX,'th1',hTh1,'th2',hTh2);
@@ -202,6 +206,13 @@ app.kick = struct('amp', 70, 'dur', 0.05, 'timer', []);
 
 
 guidata(f, app);
+try
+    assignin('base','PENDULUM_APP_FIG', f);
+    set_param(app.mdl, 'StartFcn', 'try, dp_ui_lock(PENDULUM_APP_FIG,true); catch, end');
+    set_param(app.mdl, 'StopFcn',  'try, dp_ui_lock(PENDULUM_APP_FIG,false); catch, end; try, dp_plot(PENDULUM_APP_FIG,''stop''); catch, end');
+catch
+end
+try, dp_scale_fonts(f); catch, end
 try, ui_update_eq(f); catch, end
 try, ui_update_hysteresis(f); catch, end
 try, ui_update_lqr(f); catch, end
@@ -210,6 +221,7 @@ try, dp_sync_base(f); catch, end
 %% ---------- callbacks ----------
     function onStart(~,~)
 
+        try dp_ui_lock(f, true); catch, end
         setStatusLabel('COMPILING');
         drawnow limitrate;
         a = guidata(f);
@@ -247,7 +259,7 @@ try, dp_sync_base(f); catch, end
     end
 
     function onResize(~,~)
-
+    try dp_scale_fonts(f); catch, end
     end
 
     function onPause(~,~)

@@ -43,7 +43,7 @@ stairs(ax, [0 th_off th_off eMax], [1 1 0 0], '--', 'LineWidth',1.6);
 xline(ax, th_on,  ':');
 xline(ax, th_off, ':');
 
-title(ax, sprintf('Relay: th\_on = %.3g (raw %.3g), th\_off = %.3g (raw %.3g)', th_on, th_on_raw, th_off, th_off_raw));
+title(ax, sprintf('Relay: th_on = %.3g (raw %.3g), th_off = %.3g (raw %.3g)', th_on, th_on_raw, th_off, th_off_raw));
 
 xlabel(ax,'e = max(|e1|, |e2|) [rad]');
 ylabel(ax,'tryb');
