@@ -79,14 +79,12 @@ btnKick = uicontrol('Parent', pBtns, 'Style','pushbutton', 'String','ZABURZ', ..
     'FontSize', 12, 'FontWeight','bold', ...
     'Callback', @onDisturb);
 
-% STATUS (lewa część)
 txtStatus = uicontrol('Parent', pStatus, 'Style','text', 'Units','normalized', ...
     'Position',[0.02 0.05 0.48 0.90], 'String','STATUS: STOPPED', ...
     'HorizontalAlignment','left', ...
     'FontSize', 12, 'FontWeight','bold', ...
     'BackgroundColor', get(pLeft,'BackgroundColor'));
 
-% TRYB (prawa część)
 txtMode = uicontrol('Parent', pStatus, 'Style','text', 'Units','normalized', ...
     'Position',[0.52 0.05 0.46 0.90], 'String','TRYB: -', ...
     'HorizontalAlignment','left', ...
@@ -269,7 +267,7 @@ try, dp_sync_base(f); catch, end
     end
 
     function onResize(~,~)
-    try dp_scale_fonts(f); catch, end
+        try dp_scale_fonts(f); catch, end
     end
 
     function onPause(~,~)
@@ -356,36 +354,29 @@ try, dp_sync_base(f); catch, end
 
     function onAbout(~,~)
         app = guidata(f);
-    
-        bg = get(f,'Color'); % spójne tło z aplikacją
-    
-        % Okno "O autorze"
+
+        bg = get(f,'Color');
+
         af = figure('Name','O autorze', 'NumberTitle','off', ...
             'MenuBar','none', 'ToolBar','none', ...
             'Color', bg, 'Resize','off');
-    
-        % sensowny rozmiar i wycentrowanie
+
         set(af,'Units','pixels');
         set(af,'Position', centerFigPx(660, 500));
-    
-        % zapisz uchwyt w app, żeby nie robić wielu okien
+
         if ~isfield(app,'ui'), app.ui = struct(); end
         app.ui.aboutFig = af;
         guidata(f, app);
-    
-        % Góra: loga
-       pTop = uipanel('Parent', af, 'Units','normalized', ...
-    'Position',[0 0.66 1 0.30], 'BorderType','none', 'BackgroundColor', bg);
-    
+
+        pTop = uipanel('Parent', af, 'Units','normalized', ...
+            'Position',[0 0.66 1 0.30], 'BorderType','none', 'BackgroundColor', bg);
+
         aghPath   = fullfile(appDir, 'agh.jpg');
         wimipPath = fullfile(appDir, 'wimip.png');
-        
+
         addLogoAxes(pTop, [0.05 0.00 0.44 1.00], aghPath,   'AGH');
         addLogoAxes(pTop, [0.51 0.00 0.44 1.00], wimipPath, 'WIMiP');
 
-
-    
-        % Treść: opis (edytuj sobie pola w nawiasach)
         info = {
             'Praca wykonana w ramach projektu dyplomowego'
             ''
@@ -394,16 +385,15 @@ try, dp_sync_base(f); catch, end
             'Wydział: Wydział Inżynierii Metali i Informatyki Przemysłowej'
             'Temat: Modelowanie i symulacja podwójnego wahadła odwróconego w środowisku MATLAB/Simulink'
             'Rok akademicki: 2025/2026'
-        };
-    
+            };
+
         uicontrol('Parent', af, 'Style','text', 'Units','normalized', ...
             'Position',[0.04 0 0.92 0.60], ...
             'String', info, ...
             'HorizontalAlignment','left', ...
             'BackgroundColor', bg, ...
             'FontSize', 17);
-    
-        % Sprzątanie uchwytu przy zamknięciu okna
+
         set(af, 'CloseRequestFcn', @onAboutClose);
     end
 
@@ -420,7 +410,7 @@ try, dp_sync_base(f); catch, end
 
     function addLogoAxes(parent, pos, imgPath, placeholder)
         if nargin < 4, placeholder = 'brak logo'; end
-    
+
         if isempty(imgPath) || exist(imgPath,'file') ~= 2
             uicontrol('Parent', parent, 'Style','text', 'Units','normalized', ...
                 'Position', pos, 'String', placeholder, ...
@@ -428,7 +418,7 @@ try, dp_sync_base(f); catch, end
                 'BackgroundColor', get(parent,'BackgroundColor'));
             return;
         end
-    
+
         try
             img = imread(imgPath);
         catch
@@ -438,12 +428,12 @@ try, dp_sync_base(f); catch, end
                 'BackgroundColor', get(parent,'BackgroundColor'));
             return;
         end
-    
+
         ax = axes('Parent', parent, 'Units','normalized', 'Position', pos);
         image(ax, img);
         axis(ax,'image');
         axis(ax,'off');
-    
+
         try
             set(ax, 'HitTest','off', 'PickableParts','none', 'Color', get(parent,'BackgroundColor'));
         catch
@@ -451,10 +441,10 @@ try, dp_sync_base(f); catch, end
     end
 
     function pos = centerFigPx(w,h)
-        scr = get(0,'ScreenSize'); % [x y width height]
+        scr = get(0,'ScreenSize');
         pos = [round(scr(3)/2 - w/2), round(scr(4)/2 - h/2), w, h];
     end
-    
+
     function onAboutClose(src,~)
         app = guidata(f);
         try

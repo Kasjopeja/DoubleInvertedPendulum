@@ -25,7 +25,6 @@ catch
 end
 
 cfg = dp_defaults(mdl);
-% kick defaults
 try
     if isfield(cfg,'kick')
         app.kick = struct('amp', cfg.kick.amp, 'dur', cfg.kick.dur, 'timer', []);
