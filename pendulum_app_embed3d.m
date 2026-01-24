@@ -214,12 +214,6 @@ app.sigBlks.mode = dp_find_block(mdl,'Relay');
 app.kick = struct('amp', cfg.kick.amp, 'dur', cfg.kick.dur, 'timer', []);
 
 guidata(f, app);
-try
-    assignin('base','PENDULUM_APP_FIG', f);
-    set_param(app.mdl, 'StartFcn', 'try, dp_ui_lock(PENDULUM_APP_FIG,true); catch, end');
-    set_param(app.mdl, 'StopFcn',  'try, dp_ui_lock(PENDULUM_APP_FIG,false); catch, end; try, dp_plot(PENDULUM_APP_FIG,''stop''); catch, end');
-catch
-end
 try, dp_scale_fonts(f); catch, end
 try, ui_update_eq(f); catch, end
 try, ui_update_hysteresis(f); catch, end
@@ -228,16 +222,53 @@ try, dp_sync_base(f); catch, end
 
 %% ---------- callbacks ----------
     function onStart(~,~)
+        st = '';
+        try, st = get_param(app.mdl,'SimulationStatus'); catch, end
+        st = lower(strtrim(st));
 
-        try dp_ui_lock(f, true); catch, end
+        if ~isempty(st) && ~strcmp(st,'stopped')
+            setStatusLabel('STOPPING');
+            drawnow limitrate;
+
+            try, dp_plot(f,'stop'); catch, end
+
+            try
+                a = guidata(f);
+                try, set_param(a.sigBlks.kick,'Value','0'); catch, end
+                if isfield(a,'kick') && isfield(a.kick,'timer') && ~isempty(a.kick.timer) && isvalid(a.kick.timer)
+                    if strcmpi(a.kick.timer.Running,'on')
+                        stop(a.kick.timer);
+                    end
+                end
+            catch
+            end
+
+            try, set_param(app.mdl,'SimulationCommand','stop'); catch, end
+
+            t0 = tic;
+            while toc(t0) < 3
+                st2 = '';
+                try, st2 = get_param(app.mdl,'SimulationStatus'); catch, end
+                if strcmpi(st2,'stopped')
+                    break;
+                end
+                drawnow limitrate;
+                pause(0.05);
+            end
+
+            setStatusLabel('STOPPED');
+            return;
+        end
+
         setStatusLabel('COMPILING');
         drawnow limitrate;
+
         a = guidata(f);
+
         dp_plot(f,'clear');
         ui_update_hysteresis(f);
         ui_update_lqr(f);
         dp_sync_base(f);
-
 
         try, set_param(a.sigBlks.kick,'Value','0'); catch, end
         try
@@ -245,14 +276,6 @@ try, dp_sync_base(f); catch, end
                 if strcmpi(a.kick.timer.Running,'on')
                     stop(a.kick.timer);
                 end
-            end
-        catch
-        end
-
-        try
-            st = get_param(app.mdl,'SimulationStatus');
-            if ~strcmpi(st,'stopped')
-                set_param(app.mdl,'SimulationCommand','stop');
             end
         catch
         end
@@ -583,15 +606,27 @@ try, dp_sync_base(f); catch, end
     function setStatusLabel(s)
         try
             a = guidata(f);
+
+            if isstring(s), s = char(s); end
+            if ~ischar(s),  s = char(string(s)); end
+            s = upper(strtrim(s));
+
             if isfield(a,'ui') && isfield(a.ui,'txtStatus') && isgraphics(a.ui.txtStatus)
-                if isstring(s), s = char(s); end
-                if ~ischar(s), s = char(string(s)); end
-                s = upper(strtrim(s));
                 set(a.ui.txtStatus,'String',sprintf('STATUS: %s', s));
+            end
+
+            try
+                if strcmpi(s,'STOPPED')
+                    dp_ui_lock(f, false);
+                else
+                    dp_ui_lock(f, true);
+                end
+            catch
             end
         catch
         end
     end
+
 
     function applyPerfHints()
         try, set_param(app.mdl,'SignalLogging','off'); catch, end
