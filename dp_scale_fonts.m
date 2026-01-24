@@ -31,7 +31,7 @@ function dp_scale_fonts(fig)
     end
 
     s = min(pos(3)/base(3), pos(4)/base(4));  % skala względem bazowego okna
-    s = max(0.75, min(1.60, s));              % ograniczenia, żeby nie robić skrajności
+    s = max(0.75, min(1.45, s));              % ograniczenia, żeby nie robić skrajności
 
     hs = a.ui.fontBase.handles;
     bs = a.ui.fontBase.sizes;

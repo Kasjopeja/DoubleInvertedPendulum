@@ -25,6 +25,16 @@ catch
 end
 
 cfg = dp_defaults(mdl);
+% kick defaults
+try
+    if isfield(cfg,'kick')
+        app.kick = struct('amp', cfg.kick.amp, 'dur', cfg.kick.dur, 'timer', []);
+        if isfield(app.ui,'edtKickAmp')
+            set(app.ui.edtKickAmp,'String', num2str(cfg.kick.amp));
+        end
+    end
+catch
+end
 
 app.p = cfg.p;
 app.sim = cfg.sim;

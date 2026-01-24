@@ -3,6 +3,8 @@ MODEL_FILE = 'model.slx';
 VRML_FILE  = '3DAnimation.wrl';
 
 appDir = fileparts(mfilename('fullpath'));
+
+
 addpath(appDir);
 
 [mdl, p0] = dp_reset(MODEL_FILE);
@@ -77,8 +79,16 @@ btnKick = uicontrol('Parent', pBtns, 'Style','pushbutton', 'String','ZABURZ', ..
     'FontSize', 12, 'FontWeight','bold', ...
     'Callback', @onDisturb);
 
+% STATUS (lewa część)
 txtStatus = uicontrol('Parent', pStatus, 'Style','text', 'Units','normalized', ...
-    'Position',[0.02 0.05 0.96 0.90], 'String','STATUS: STOPPED', ...
+    'Position',[0.02 0.05 0.48 0.90], 'String','STATUS: STOPPED', ...
+    'HorizontalAlignment','left', ...
+    'FontSize', 12, 'FontWeight','bold', ...
+    'BackgroundColor', get(pLeft,'BackgroundColor'));
+
+% TRYB (prawa część)
+txtMode = uicontrol('Parent', pStatus, 'Style','text', 'Units','normalized', ...
+    'Position',[0.52 0.05 0.46 0.90], 'String','TRYB: -', ...
     'HorizontalAlignment','left', ...
     'FontSize', 12, 'FontWeight','bold', ...
     'BackgroundColor', get(pLeft,'BackgroundColor'));
@@ -110,7 +120,7 @@ pRight = uipanel('Parent', f, 'Units','normalized', ...
 
 topH = 0.58;
 p3d = uipanel('Parent', pRight, 'Units','normalized', ...
-    'Position',[0 1-topH 1 topH], 'Title','Animacja 3D');
+    'Position',[0 1-topH 1 topH], 'Title', '', 'BorderType','none');
 
 pPlots = uipanel('Parent', pRight, 'Units','normalized', ...
     'Position',[0 0 1 1-topH-gap], 'Title','Wykresy');
@@ -121,14 +131,13 @@ p3dStrip = uipanel('Parent', p3d, 'Units','normalized', ...
 p3dView = uipanel('Parent', p3d, 'Units','normalized', ...
     'Position',[0 0 1 1-stripH], 'BorderType','none');
 
-txtU = uicontrol('Parent', p3dStrip, 'Style','text', 'Units','normalized', ...
-    'Position',[0.05 0.15 0.40 0.6], 'String','u = 0 N', ...
-    'HorizontalAlignment','left', 'FontSize', 9, ...
-    'BackgroundColor', get(p3dStrip,'BackgroundColor'));
-
 uicontrol('Parent', p3dStrip, 'Style','pushbutton', 'Units','normalized', ...
-    'Position',[0.78 0.18 0.20 0.64], 'String','Resetuj widok', ...
+    'Position',[0.05 0.18 0.22 0.64], 'String','Resetuj widok', ...
     'FontSize', 9, 'Callback', @onResetView);
+
+btnAbout = uicontrol('Parent', p3dStrip, 'Style','pushbutton', 'Units','normalized', ...
+    'Position',[0.75 0.18 0.20 0.64], 'String','O autorze', ...
+    'FontSize', 9, 'Callback', @onAbout);
 
 c = vr.canvas(w, p3dView);
 
@@ -137,12 +146,12 @@ axW = (1 - 3*plotGap) / 2;
 axH = 0.78;
 axY = 0.14;
 
-axX = axes('Parent', pPlots, 'Units','normalized', 'Position',[plotGap axY axW axH]);
-grid(axX,'on'); hold(axX,'on');
-xlabel(axX,'t [s]'); ylabel(axX,'x [m]');
-title(axX,'Położenie x');
-hX = plot(axX, nan, nan);
-hold(axX,'off');
+axU = axes('Parent', pPlots, 'Units','normalized', 'Position',[plotGap axY axW axH]);
+grid(axU,'on'); hold(axU,'on');
+xlabel(axU,'t [s]'); ylabel(axU,'u [N]');
+title(axU,'Siła na wózek');
+hU = plot(axU, nan, nan);
+hold(axU,'off');
 
 axTh = axes('Parent', pPlots, 'Units','normalized', 'Position',[2*plotGap+axW axY axW axH]);
 grid(axTh,'on'); hold(axTh,'on');
@@ -179,19 +188,20 @@ app.hyst = struct('th_on', cfg.hyst.th_on, 'delta', cfg.hyst.delta, 'th_off', cf
 app.ic = struct('x0', cfg.ic.x0, 'theta1_0', cfg.ic.theta1_0, 'theta2_0', cfg.ic.theta2_0);
 
 app.ui = ui;
-app.ui.txtU = txtU;
 app.ui.txtStatus = txtStatus;
+app.ui.txtMode   = txtMode;
 app.ui.edtX0 = edtX0;
 app.ui.edtTh10 = edtTh10;
 app.ui.edtTh20 = edtTh20;
 app.ui.btnStart   = btnStart;
 app.ui.btnPause   = btnPause;
 app.ui.btnPreset  = btnPreset;
+app.ui.btnAbout = btnAbout;
 
-app.ax = struct('x',axX,'th',axTh);
-app.lines = struct('x',hX,'th1',hTh1,'th2',hTh2);
+app.ax = struct('u',axU,'th',axTh);
+app.lines = struct('u',hU,'th1',hTh1,'th2',hTh2);
+app.plot = struct('t',[],'u',[],'th1',[],'th2',[], 'maxN',5000,'tWindow',10);
 
-app.plot = struct('t',[],'x',[],'th1',[],'th2',[], 'maxN',5000,'tWindow',10);
 app.timer = [];
 
 app.sigBlks = struct();
@@ -201,9 +211,9 @@ app.sigBlks.th2 = dp_find_block(mdl,'Integrator2');
 app.sigBlks.u   = dp_find_block(mdl,'Switch1');
 app.sigBlks.vr  = dp_find_block(mdl,'VR Sink');
 app.sigBlks.kick = dp_find_block(mdl,'kick');
+app.sigBlks.mode = dp_find_block(mdl,'Relay');
 
-app.kick = struct('amp', 70, 'dur', 0.05, 'timer', []);
-
+app.kick = struct('amp', cfg.kick.amp, 'dur', cfg.kick.dur, 'timer', []);
 
 guidata(f, app);
 try
@@ -294,9 +304,12 @@ try, dp_sync_base(f); catch, end
             return;
         end
 
+        amp = app.kick.amp;
+        dur = app.kick.dur;
+
         try
             if ~isfield(a,'kick') || ~isstruct(a.kick)
-                a.kick = struct('amp',70,'dur',0.05,'timer',[]);
+                a.kick = struct('amp',amp,'dur',dur,'timer',[]);
             end
             if ~isfield(a.kick,'timer') || isempty(a.kick.timer) || ~isvalid(a.kick.timer)
                 a.kick.timer = timer( ...
@@ -341,15 +354,117 @@ try, dp_sync_base(f); catch, end
         end
     end
 
-    function ang = disturbAngleLocal(angEq, d)
+    function onAbout(~,~)
+        app = guidata(f);
+    
+        bg = get(f,'Color'); % spójne tło z aplikacją
+    
+        % Okno "O autorze"
+        af = figure('Name','O autorze', 'NumberTitle','off', ...
+            'MenuBar','none', 'ToolBar','none', ...
+            'Color', bg, 'Resize','off');
+    
+        % sensowny rozmiar i wycentrowanie
+        set(af,'Units','pixels');
+        set(af,'Position', centerFigPx(660, 500));
+    
+        % zapisz uchwyt w app, żeby nie robić wielu okien
+        if ~isfield(app,'ui'), app.ui = struct(); end
+        app.ui.aboutFig = af;
+        guidata(f, app);
+    
+        % Góra: loga
+       pTop = uipanel('Parent', af, 'Units','normalized', ...
+    'Position',[0 0.66 1 0.30], 'BorderType','none', 'BackgroundColor', bg);
+    
+        aghPath   = fullfile(appDir, 'agh.jpg');
+        wimipPath = fullfile(appDir, 'wimip.png');
+        
+        addLogoAxes(pTop, [0.05 0.00 0.44 1.00], aghPath,   'AGH');
+        addLogoAxes(pTop, [0.51 0.00 0.44 1.00], wimipPath, 'WIMiP');
 
-        if abs(angEq) < pi/2
-            ang = angEq + d;
-        else
-            ang = angEq - d;
+
+    
+        % Treść: opis (edytuj sobie pola w nawiasach)
+        info = {
+            'Praca wykonana w ramach projektu dyplomowego'
+            ''
+            'Autor: Aleksandra Zakręcka'
+            'Uczelnia: Akademia Górniczo-Hutnicza im. Stanisława Staszica w Krakowie'
+            'Wydział: Wydział Inżynierii Metali i Informatyki Przemysłowej'
+            'Temat: Modelowanie i symulacja podwójnego wahadła odwróconego w środowisku MATLAB/Simulink'
+            'Rok akademicki: 2025/2026'
+        };
+    
+        uicontrol('Parent', af, 'Style','text', 'Units','normalized', ...
+            'Position',[0.04 0 0.92 0.60], ...
+            'String', info, ...
+            'HorizontalAlignment','left', ...
+            'BackgroundColor', bg, ...
+            'FontSize', 17);
+    
+        % Sprzątanie uchwytu przy zamknięciu okna
+        set(af, 'CloseRequestFcn', @onAboutClose);
+    end
+
+    function p = pickAsset(dirPath, names)
+        p = '';
+        for i = 1:numel(names)
+            cand = fullfile(dirPath, names{i});
+            if exist(cand,'file') == 2
+                p = cand;
+                return;
+            end
         end
-        if ang > pi,  ang = ang - 2*pi; end
-        if ang < -pi, ang = ang + 2*pi; end
+    end
+
+    function addLogoAxes(parent, pos, imgPath, placeholder)
+        if nargin < 4, placeholder = 'brak logo'; end
+    
+        if isempty(imgPath) || exist(imgPath,'file') ~= 2
+            uicontrol('Parent', parent, 'Style','text', 'Units','normalized', ...
+                'Position', pos, 'String', placeholder, ...
+                'HorizontalAlignment','center', ...
+                'BackgroundColor', get(parent,'BackgroundColor'));
+            return;
+        end
+    
+        try
+            img = imread(imgPath);
+        catch
+            uicontrol('Parent', parent, 'Style','text', 'Units','normalized', ...
+                'Position', pos, 'String', placeholder, ...
+                'HorizontalAlignment','center', ...
+                'BackgroundColor', get(parent,'BackgroundColor'));
+            return;
+        end
+    
+        ax = axes('Parent', parent, 'Units','normalized', 'Position', pos);
+        image(ax, img);
+        axis(ax,'image');
+        axis(ax,'off');
+    
+        try
+            set(ax, 'HitTest','off', 'PickableParts','none', 'Color', get(parent,'BackgroundColor'));
+        catch
+        end
+    end
+
+    function pos = centerFigPx(w,h)
+        scr = get(0,'ScreenSize'); % [x y width height]
+        pos = [round(scr(3)/2 - w/2), round(scr(4)/2 - h/2), w, h];
+    end
+    
+    function onAboutClose(src,~)
+        app = guidata(f);
+        try
+            delete(src);
+        catch
+        end
+        if isfield(app,'ui')
+            app.ui.aboutFig = [];
+            guidata(f, app);
+        end
     end
 
     function onPreset(k)
@@ -401,6 +516,14 @@ try, dp_sync_base(f); catch, end
         try, set(f,'Visible','off'); drawnow('nocallbacks'); catch, end
 
         dp_plot(f,'stop');
+
+        try
+            app = guidata(f);
+            if isfield(app,'ui') && isfield(app.ui,'aboutFig') && isgraphics(app.ui.aboutFig)
+                delete(app.ui.aboutFig);
+            end
+        catch
+        end
 
         a = [];
         try, a = guidata(f); catch, end
@@ -496,5 +619,6 @@ try, dp_sync_base(f); catch, end
         catch
         end
     end
+
 end
 

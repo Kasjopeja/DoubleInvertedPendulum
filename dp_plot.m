@@ -49,22 +49,48 @@ switch lower(action)
         a.timer = [];
         guidata(fig,a);
 
+    try, set(a.ui.txtMode,'String','TRYB: -'); catch, end
+
     case 'clear'
-        a.plot.t   = [];
-        a.plot.x   = [];
-        a.plot.th1 = [];
-        a.plot.th2 = [];
-
-        set(a.lines.x,  'XData', nan, 'YData', nan);
-        set(a.lines.th1,'XData', nan, 'YData', nan);
-        set(a.lines.th2,'XData', nan, 'YData', nan);
-
-        xlim(a.ax.x, [0 1]);
-        xlim(a.ax.th,[0 1]);
+      a.plot.t   = [];
+      a.plot.u   = [];
+      a.plot.th1 = [];
+      a.plot.th2 = [];
+    
+      set(a.lines.u,  'XData', nan, 'YData', nan);
+      set(a.lines.th1,'XData', nan, 'YData', nan);
+      set(a.lines.th2,'XData', nan, 'YData', nan);
+    
+      xlim(a.ax.u, [0 1]);
+      xlim(a.ax.th,[0 1]);
         guidata(fig,a);
         drawnow;
 
+    try, set(a.ui.txtMode,'String','TRYB: -'); catch, end
+
     case 'tick'
+
+        modeVal = NaN;
+        try
+            if isfield(a.sigBlks,'mode') && ~isempty(a.sigBlks.mode)
+                roM = get_param(a.sigBlks.mode,'RuntimeObject');
+                modeVal = double(roM.OutputPort(1).Data);
+            end
+        catch
+            modeVal = NaN;
+        end
+        
+        try
+            if isfinite(modeVal) && modeVal > 0.5
+                set(a.ui.txtMode,'String','TRYB: LQR');
+            elseif isfinite(modeVal)
+                set(a.ui.txtMode,'String','TRYB: SUR');
+            else
+                set(a.ui.txtMode,'String','TRYB: -');
+            end
+        catch
+        end
+
         try
             st = '';
             try, st = get_param(a.mdl,'SimulationStatus'); catch, return; end
@@ -106,11 +132,9 @@ switch lower(action)
             end
 
             try
-                roX  = get_param(a.sigBlks.x,  'RuntimeObject');
                 roT1 = get_param(a.sigBlks.th1,'RuntimeObject');
                 roT2 = get_param(a.sigBlks.th2,'RuntimeObject');
 
-                xVal   = roX.OutputPort(1).Data;
                 th1Val = roT1.OutputPort(1).Data;
                 th2Val = roT2.OutputPort(1).Data;
             catch
@@ -131,34 +155,25 @@ switch lower(action)
             th2Val = wrapToPiLocal(th2Val);
 
             a.plot.t(end+1)   = t;
-            a.plot.x(end+1)   = xVal;
+            a.plot.u(end+1)   = uVal;
             a.plot.th1(end+1) = th1Val;
             a.plot.th2(end+1) = th2Val;
 
             if numel(a.plot.t) > a.plot.maxN
                 k = numel(a.plot.t) - a.plot.maxN;
                 a.plot.t   = a.plot.t(k+1:end);
-                a.plot.x   = a.plot.x(k+1:end);
+                a.plot.u   = a.plot.u(k+1:end);
                 a.plot.th1 = a.plot.th1(k+1:end);
                 a.plot.th2 = a.plot.th2(k+1:end);
             end
 
-            set(a.lines.x,  'XData', a.plot.t, 'YData', a.plot.x);
+            set(a.lines.u,  'XData', a.plot.t, 'YData', a.plot.u);
             set(a.lines.th1,'XData', a.plot.t, 'YData', a.plot.th1);
             set(a.lines.th2,'XData', a.plot.t, 'YData', a.plot.th2);
 
             t0 = max(0, t - a.plot.tWindow);
-            xlim(a.ax.x,  [t0, max(t0+1e-6, t)]);
+            xlim(a.ax.u,  [t0, max(t0+1e-6, t)]);
             xlim(a.ax.th, [t0, max(t0+1e-6, t)]);
-
-            try
-                if isfinite(uVal)
-                    set(a.ui.txtU, 'String', sprintf('u = %.3g N', uVal));
-                else
-                    set(a.ui.txtU, 'String', 'u = -');
-                end
-            catch
-            end
 
             guidata(fig,a);
             drawnow limitrate;

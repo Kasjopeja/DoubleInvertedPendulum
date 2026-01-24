@@ -27,6 +27,8 @@ function dp_ui_lock(fig, locked)
     hs = addH(hs, a, {'ui','edtTh10'});
     hs = addH(hs, a, {'ui','edtTh20'});
 
+    hs = addH(hs, a, {'ui','edtKickAmp'});
+
     % Parametry (panel Parametry)
     hs = addH(hs, a, {'ui','btnResetAll'});
     hs = addH(hs, a, {'ui','hP'});
