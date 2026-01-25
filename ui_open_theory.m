@@ -1,5 +1,5 @@
 function ui_open_theory(fig)
-url = 'https://github.com/Kasjopeja/DoubleInvertedPendulum/tree/master';
+url = 'https://github.com/Kasjopeja/DoubleInvertedPendulum/blob/master/Praca_In%C5%BCynierska_Aleksandra_Zakr%C4%99cka.pdf';
 
 try
     web(url, '-browser');
