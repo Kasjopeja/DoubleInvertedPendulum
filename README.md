@@ -1,4 +1,5 @@
-<img width="1919" height="1004" alt="image" src="https://github.com/user-attachments/assets/4c6e8088-638d-4085-869a-ceba1d2ce9a1" />
-<img width="1262" height="712" alt="image" src="https://github.com/user-attachments/assets/589eba6e-4031-4192-b0ab-48f427e5928a" />
+<img width="1919" height="1006" alt="image" src="https://github.com/user-attachments/assets/c9b24942-0129-4958-a8a4-ff5112b3a23c" />
+<img width="1260" height="705" alt="simulink_model_overview" src="https://github.com/user-attachments/assets/5c2ae7bd-4632-4a27-b294-3d01bc0f0ef6" />
+
 
 
