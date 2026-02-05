@@ -93,7 +93,7 @@ txtMode = uicontrol('Parent', pStatus, 'Style','text', 'Units','normalized', ...
 
 bg = get(pIC,'BackgroundColor');
 uicontrol('Parent', pIC, 'Style','text', 'Units','normalized', ...
-    'Position',[0.06 0.66 0.32 0.18], 'String','x [m]', ...
+    'Position',[0.06 0.66 0.32 0.18], 'String','θ₀ [m]', ...
     'HorizontalAlignment','left', 'BackgroundColor',bg);
 edtX0 = uicontrol('Parent', pIC, 'Style','edit', 'Units','normalized', ...
     'Position',[0.45 0.66 0.50 0.20], 'String','0', 'Callback', @onApplyIC);
@@ -147,7 +147,7 @@ axY = 0.14;
 axU = axes('Parent', pPlots, 'Units','normalized', 'Position',[plotGap axY axW axH]);
 grid(axU,'on'); hold(axU,'on');
 xlabel(axU,'t [s]'); ylabel(axU,'u [N]');
-title(axU,'Siła na wózek');
+title(axU,'Siła');
 hU = plot(axU, nan, nan);
 hold(axU,'off');
 

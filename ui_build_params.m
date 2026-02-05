@@ -103,7 +103,7 @@ for i = 1:6
         'Callback', @(~,~)ui_update_lqr(fig));
 end
 
-labels = {'x','ẋ','θ₁','θ̇₁','θ₂','θ̇₂'};
+labels = {'θ₀','θ̇₀','θ₁','θ̇₁','θ₂','θ̇₂'};
 for i = 1:6
     uicontrol('Parent', pLqr, 'Style','text', 'Units','normalized', ...
         'Position',[x0+(i-1)*(w+gap) 0.60 w 0.10], ...
